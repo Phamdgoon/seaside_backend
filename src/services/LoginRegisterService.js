@@ -41,6 +41,11 @@ const handleLoginService = async (data) => {
                     [user.username]
                 );
 
+                const [profileRows] = await connection.execute(
+                    "SELECT avt, account_name FROM buyer_profile WHERE username = ?",
+                    [user.username]
+                );
+
                 if (isCorrectPassword && permissionRows.length > 0) {
                     const permissions = permissionRows.map(
                         (permissionRow) => permissionRow.id_permission
@@ -58,10 +63,21 @@ const handleLoginService = async (data) => {
                     );
 
                     const firstPermissionName = permissionNames[0];
+                    const avatar =
+                        profileRows.length > 0 ? profileRows[0].avt : null;
+                    const accountName =
+                        profileRows.length > 0
+                            ? profileRows[0].account_name
+                            : null;
                     return {
-                        EM: `Đã đăng nhập với quyền ${firstPermissionName}`,
+                        EM: `Logged in with permissions ${firstPermissionName}`,
                         EC: 0,
-                        DT: "",
+                        DT: {
+                            userName: user.username,
+                            userPermissions: permissionNames,
+                            avatar: avatar,
+                            accountName: accountName,
+                        },
                     };
                 } else {
                     return {
