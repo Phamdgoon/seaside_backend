@@ -5,7 +5,13 @@ const router = express.Router();
 
 const initApiRoutes = (app) => {
     router.post("/login", LoginRegisterController.handleLogin);
+    router.post("/register", LoginRegisterController.handleRegister);
+    router.get(
+        "/confirm-registration",
+        LoginRegisterController.confirmRegistration
+    );
     router.get("/get-categories", BuyerController.getCategories);
+    router.get("/get-products", BuyerController.getProducts);
 
     return app.use("/", router);
 };
