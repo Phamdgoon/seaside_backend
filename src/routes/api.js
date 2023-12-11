@@ -5,7 +5,11 @@ const router = express.Router();
 
 const initApiRoutes = (app) => {
     router.post("/login", LoginRegisterController.handleLogin);
-    router.post("/register", LoginRegisterController.handleRegister);
+    router.post("/register-buyer", LoginRegisterController.handleRegisterBuyer);
+    router.post(
+        "/register-seller",
+        LoginRegisterController.handleRegisterSaler
+    );
     router.get(
         "/confirm-registration",
         LoginRegisterController.confirmRegistration

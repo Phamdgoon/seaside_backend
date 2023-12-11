@@ -5,13 +5,13 @@ const nodemailer = require("nodemailer");
 
 require("dotenv").config();
 
-// const hashUserPassword = (password) => {
-//     let hashPassword = bcrypt.hashSync(password, salt);
-//     return hashPassword;
-// };
+const hashUserPassword = (password) => {
+    let hashPassword = bcrypt.hashSync(password, salt);
+    return hashPassword;
+};
 
-const checkPassword = (inputPassword, hashPassword) => {
-    return bcrypt.compareSync(inputPassword, hashPassword); // true or false
+const checkPassword = (password, hashPassword) => {
+    return bcrypt.compareSync(password, hashPassword);
 };
 
 const handleLoginService = async (data) => {
@@ -37,59 +37,70 @@ const handleLoginService = async (data) => {
                     userRows[0].password
                 );
 
-                const [permissionRows] = await connection.execute(
-                    "SELECT * FROM user_permission WHERE username = ?",
-                    [user.username]
-                );
-
-                const [profileRows] = await connection.execute(
-                    "SELECT avt, account_name FROM buyer_profile WHERE username = ?",
-                    [user.username]
-                );
-
-                if (isCorrectPassword && permissionRows.length > 0) {
-                    const permissions = permissionRows.map(
-                        (permissionRow) => permissionRow.id_permission
+                if (isCorrectPassword) {
+                    const [permissionRows] = await connection.execute(
+                        "SELECT * FROM user_permission WHERE username = ?",
+                        [user.username]
                     );
 
-                    const permissionNames = await Promise.all(
-                        permissions.map(async (permissionId) => {
-                            const [permissionDetailRows] =
-                                await connection.execute(
-                                    "SELECT name_permission FROM permission WHERE id = ?",
-                                    [permissionId]
-                                );
-                            return permissionDetailRows[0].name_permission;
-                        })
+                    const [profileRows] = await connection.execute(
+                        "SELECT avt, account_name FROM buyer_profile WHERE username = ?",
+                        [user.username]
                     );
 
-                    const firstPermissionName = permissionNames[0];
-                    const avatar =
-                        profileRows.length > 0 ? profileRows[0].avt : null;
-                    const accountName =
-                        profileRows.length > 0
-                            ? profileRows[0].account_name
-                            : null;
-                    return {
-                        EM: `Logged in with permissions ${firstPermissionName}`,
-                        EC: 0,
-                        DT: {
-                            userName: user.username,
-                            userPermissions: permissionNames,
-                            avatar: avatar,
-                            accountName: accountName,
-                        },
-                    };
+                    if (permissionRows.length > 0) {
+                        const permissions = permissionRows.map(
+                            (permissionRow) => permissionRow.id_permission
+                        );
+
+                        const permissionNames = await Promise.all(
+                            permissions.map(async (permissionId) => {
+                                const [permissionDetailRows] =
+                                    await connection.execute(
+                                        "SELECT name_permission FROM permission WHERE id = ?",
+                                        [permissionId]
+                                    );
+                                return permissionDetailRows[0].name_permission;
+                            })
+                        );
+
+                        const firstPermissionName = permissionNames[0];
+                        const avatar =
+                            profileRows.length > 0 ? profileRows[0].avt : null;
+                        const accountName =
+                            profileRows.length > 0
+                                ? profileRows[0].account_name
+                                : null;
+                        return {
+                            EM: `Logged in with permissions ${firstPermissionName}`,
+                            EC: 0,
+                            DT: {
+                                userName: user.username,
+                                userPermissions: permissionNames,
+                                avatar: avatar,
+                                accountName: accountName,
+                            },
+                        };
+                    } else {
+                        // Trường hợp không có quyền nào được tìm thấy
+                        return {
+                            EM: "No permissions found for the user.",
+                            EC: -4,
+                            DT: "",
+                        };
+                    }
                 } else {
+                    // Trường hợp mật khẩu sai
                     return {
-                        EM: "Your email or password is incorrect!",
-                        EC: 1,
+                        EM: "Incorrect password!",
+                        EC: 2,
                         DT: "",
                     };
                 }
             } else {
+                // Trường hợp email sai
                 return {
-                    EM: "Your email or password is incorrect!",
+                    EM: "Incorrect email!",
                     EC: 1,
                     DT: "",
                 };
@@ -138,7 +149,7 @@ const checkEmail = async (email) => {
     }
 };
 
-const handleRegisterService = async (data) => {
+const handleRegisterBuyerService = async (data) => {
     try {
         let isEmailExist = await checkEmail(data.email);
         if (isEmailExist === true) {
@@ -147,6 +158,9 @@ const handleRegisterService = async (data) => {
                 EC: 1,
             };
         }
+
+        let hashPassword = hashUserPassword(data.password);
+
         const connection = await mysql.createConnection({
             host: process.env.DB_HOST,
             user: process.env.DB_USERNAME,
@@ -155,19 +169,113 @@ const handleRegisterService = async (data) => {
             port: process.env.DB_PORT,
         });
 
-        await connection.execute(
-            "INSERT INTO user (email, email_verified) VALUES (?, 0)",
-            [data.email]
-        );
+        try {
+            // Thêm người dùng vào bảng user
+            await connection.execute(
+                "INSERT INTO user (email, username, password, phone_number, email_verified) VALUES (?, ?, ?, ?, 0)",
+                [data.email, data.username, hashPassword, data.phone_number]
+            );
 
-        // Gửi email xác nhận đăng ký
-        await sendRegistrationConfirmationEmail(data.email);
+            // Thêm quyền mặc định (id_permission = 3) cho người dùng vào bảng user_permission
+            await connection.execute(
+                "INSERT INTO user_permission (id_permission, username) VALUES (3, ?)",
+                [data.username]
+            );
 
+            await connection.execute(
+                "INSERT INTO buyer_profile (username, account_name) VALUES (?,?)",
+                [data.username, data.account_name]
+            );
+
+            await connection.commit();
+
+            // Gửi email xác nhận đăng ký
+            await sendRegistrationConfirmationEmail(data.email);
+
+            return {
+                EM: "Registration successful. Please check your email to complete the registration.",
+                EC: 0,
+                DT: "",
+            };
+        } catch (error) {
+            await connection.rollback();
+            console.log(error);
+            return {
+                EM: "Error during registration.",
+                EC: -4,
+                DT: "",
+            };
+        } finally {
+            connection.end();
+        }
+    } catch (error) {
+        console.log(error);
         return {
-            EM: "Registration successful. Please check your email to complete the registration.",
-            EC: 0,
+            EM: "Error during registration.",
+            EC: -4,
             DT: "",
         };
+    }
+};
+const handleRegisterSalerService = async (data) => {
+    try {
+        let isEmailExist = await checkEmail(data.email);
+        if (isEmailExist === true) {
+            return {
+                EM: "Email is already exist",
+                EC: 1,
+            };
+        }
+
+        let hashPassword = hashUserPassword(data.password);
+
+        const connection = await mysql.createConnection({
+            host: process.env.DB_HOST,
+            user: process.env.DB_USERNAME,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+            port: process.env.DB_PORT,
+        });
+
+        try {
+            // Thêm người dùng vào bảng user
+            await connection.execute(
+                "INSERT INTO user (email, username, password, phone_number, email_verified) VALUES (?, ?, ?, ?, 0)",
+                [data.email, data.username, hashPassword, data.phone_number]
+            );
+
+            // Thêm quyền mặc định (id_permission = 3) cho người dùng vào bảng user_permission
+            await connection.execute(
+                "INSERT INTO user_permission (id_permission, username) VALUES (2, ?)",
+                [data.username]
+            );
+
+            await connection.execute(
+                "INSERT INTO shop_profile (username, name_shop) VALUES (?,?)",
+                [data.username, data.name_shop]
+            );
+
+            await connection.commit();
+
+            // Gửi email xác nhận đăng ký
+            await sendRegistrationConfirmationEmail(data.email);
+
+            return {
+                EM: "Registration successful. Please check your email to complete the registration.",
+                EC: 0,
+                DT: "",
+            };
+        } catch (error) {
+            await connection.rollback();
+            console.log(error);
+            return {
+                EM: "Error during registration.",
+                EC: -4,
+                DT: "",
+            };
+        } finally {
+            connection.end();
+        }
     } catch (error) {
         console.log(error);
         return {
@@ -234,6 +342,7 @@ const sendRegistrationConfirmationEmail = async (userEmail) => {
 
 module.exports = {
     handleLoginService,
-    handleRegisterService,
+    handleRegisterBuyerService,
+    handleRegisterSalerService,
     confirmRegistrationByEmail,
 };
