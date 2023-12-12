@@ -38,8 +38,6 @@ const getCategoriesService = async () => {
       EC: -2,
       DT: "",
     };
-  } finally {
-    connection.end();
   }
 };
 
@@ -61,69 +59,69 @@ const getProductsService = async () => {
       on category_child.id_category = categories.id
             `);
 
-    let oldID = 0;
-    let newData = [];
-    dataProducts.forEach((item) => {
-      const cate_id = item.category_id;
-      let newArr = [];
-      let new_name_cate = "";
+    // let oldID = 0;
+    // let newData = [];
+    // dataProducts.forEach((item) => {
+    //   const cate_id = item.category_id;
+    //   let newArr = [];
+    //   let new_name_cate = "";
 
-      dataProducts.forEach((val) => {
-        if (cate_id === oldID) return;
-        if (cate_id === val.category_id) {
-          let newVal = val;
-          new_name_cate = newVal.name_category;
+    //   dataProducts.forEach((val) => {
+    //     if (cate_id === oldID) return;
+    //     if (cate_id === val.category_id) {
+    //       let newVal = val;
+    //       new_name_cate = newVal.name_category;
 
-          delete newVal.category_id;
-          delete newVal.name_category;
-          newArr.push(newVal);
-        }
-      });
+    //       delete newVal.category_id;
+    //       delete newVal.name_category;
+    //       newArr.push(newVal);
+    //     }
+    //   });
 
-      if (cate_id && newArr.length > 0)
-        newData.push({ id: cate_id, new_name_cate, data: newArr });
+    //   if (cate_id && newArr.length > 0)
+    //     newData.push({ id: cate_id, new_name_cate, data: newArr });
 
-      oldID = cate_id;
-    });
+    //   oldID = cate_id;
+    // });
 
-    let oldID1 = 0;
-    newData.forEach((cate) => {
-      let newC = cate.data;
-      cate.data = [];
+    // let oldID1 = 0;
+    // newData.forEach((cate) => {
+    //   let newC = cate.data;
+    //   cate.data = [];
 
-      newC.forEach((item) => {
-        const cate_id1 = item.category_child_id;
-        if (cate_id1 === oldID1) return;
+    //   newC.forEach((item) => {
+    //     const cate_id1 = item.category_child_id;
+    //     if (cate_id1 === oldID1) return;
 
-        let newArr1 = [];
-        let new_name_cate_child = "";
+    //     let newArr1 = [];
+    //     let new_name_cate_child = "";
 
-        newC.forEach((val) => {
-          if (cate_id1 === val.category_child_id) {
-            let newVal = val;
-            new_name_cate_child = newVal.name_category_child;
+    //     newC.forEach((val) => {
+    //       if (cate_id1 === val.category_child_id) {
+    //         let newVal = val;
+    //         new_name_cate_child = newVal.name_category_child;
 
-            delete newVal.category_child_id;
-            delete newVal.name_category_child;
-            newArr1.push(newVal);
-          }
-        });
+    //         delete newVal.category_child_id;
+    //         delete newVal.name_category_child;
+    //         newArr1.push(newVal);
+    //       }
+    //     });
 
-        if (cate_id1 && newArr1.length > 0) {
-          cate.data.push({
-            id_child: cate_id1,
-            new_name_cate_child,
-            products: newArr1,
-          });
-        }
-        oldID1 = cate_id1;
-      });
-    });
+    //     if (cate_id1 && newArr1.length > 0) {
+    //       cate.data.push({
+    //         id_child: cate_id1,
+    //         new_name_cate_child,
+    //         products: newArr1,
+    //       });
+    //     }
+    //     oldID1 = cate_id1;
+    //   });
+    // });
 
     return {
       EM: "Products retrieved successfully",
       EC: 0,
-      DT: newData,
+      DT: dataProducts,
     };
   } catch (e) {
     console.error(e);
@@ -132,8 +130,6 @@ const getProductsService = async () => {
       EC: -2,
       DT: "",
     };
-  } finally {
-    connection.end();
   }
 };
 
