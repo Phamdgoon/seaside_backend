@@ -310,7 +310,7 @@ const confirmRegistrationByEmail = async (email) => {
 };
 
 const sendRegistrationConfirmationEmail = async (userEmail) => {
-  const confirmationLink = `http://localhost:8080/confirm-registration?email=${userEmail}`;
+  const confirmationLink = `http://localhost:8088/confirm-registration?email=${userEmail}`;
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
