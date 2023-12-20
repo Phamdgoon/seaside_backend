@@ -53,6 +53,11 @@ const handleLoginService = async (data) => {
                         [user.username]
                     );
 
+                    const [addressShipRows] = await connection.execute(
+                        "SELECT address, phone_number FROM shipping_address WHERE username = ?",
+                        [user.username]
+                    );
+
                     if (permissionRows.length > 0) {
                         const permissions = permissionRows.map(
                             (permissionRow) => permissionRow.id_permission
@@ -80,6 +85,14 @@ const handleLoginService = async (data) => {
                             profileRows.length > 0
                                 ? profileRows[0].account_name
                                 : null;
+                        const address =
+                            addressShipRows.length > 0
+                                ? addressShipRows[0].address
+                                : null;
+                        const phone_number =
+                            addressShipRows.length > 0
+                                ? addressShipRows[0].phone_number
+                                : null;
                         return {
                             EM: `Logged in with permissions ${firstPermissionName}`,
                             EC: 0,
@@ -89,6 +102,8 @@ const handleLoginService = async (data) => {
                                 avatar: avatar,
                                 accountName: accountName,
                                 nameShop: nameShop,
+                                address: address,
+                                phoneNumber: phone_number,
                             },
                         };
                     } else {
