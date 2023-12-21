@@ -62,7 +62,6 @@ const handleLoginService = async (data) => {
                 return permissionDetailRows[0].name_permission;
               })
             );
-
             const firstPermissionName = permissionNames[0];
             const avatar = profileRows.length > 0 ? profileRows[0].avt : null;
             const accountName =

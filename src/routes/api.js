@@ -2,6 +2,7 @@ import express from "express";
 import LoginRegisterController from "../controller/LoginRegisterController";
 import BuyerController from "../controller/BuyerController";
 import SellerController from "../controller/SellerController";
+
 const router = express.Router();
 
 const initApiRoutes = (app) => {
@@ -16,6 +17,8 @@ const initApiRoutes = (app) => {
   router.get("/get-products", BuyerController.getProducts);
 
   router.post("/add-new-category-child", SellerController.addNewCategoryChild);
+
+  router.post("/create-new-product", SellerController.createNewProduct);
 
   return app.use("/", router);
 };
