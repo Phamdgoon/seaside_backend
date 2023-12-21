@@ -13,8 +13,10 @@
     "@babel/core": "^7.23.5",
     "@babel/node": "^7.22.19",
     "@babel/preset-env": "^7.23.5",
+    "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
+    "cloudinary": "^1.41.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.9",
@@ -22,6 +24,8 @@
     "mysql2": "^3.6.5",
     "nodemailer": "^6.6.3",
     "nodemon": "^3.0.2",
+    "react-native-fs": "^2.20.0",
+    "react-native-image-crop-picker": "^0.40.2",
     "sequelize": "^6.13.0",
     "sequelize-cli": "^6.3.0"
   }
