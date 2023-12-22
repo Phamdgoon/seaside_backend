@@ -1,12 +1,18 @@
 import connection from "../config/connectDB";
 
 const handleAddNewCategoryService = async (data) => {
-  console.log(data);
   try {
     //req.body
+    const idShop = await connection.execute(
+      "SELECT id FROM `shop_profile` WHERE username = ?",
+      [data.userName]
+    );
+    const idS = idShop[0];
+    const id_shop = idS[0].id;
+
     const res = await connection.execute(
-      "insert into category_child (name_category_child,id_category) values (?,?)",
-      [data.nameCategoryChild, data.idCategory]
+      "insert into category_child (name_category_child,id_category,id_shop) values (?,?,?)",
+      [data.nameCategoryChild, data.idCategory, id_shop]
     );
     if (res) {
       return {
