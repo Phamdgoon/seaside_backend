@@ -24,6 +24,7 @@ const addNewCategoryChild = async (req, res) => {
 };
 
 const createNewProduct = async (req, res) => {
+  console.log(req.body.data);
   if (!req.body) {
     return res.status(200).json({
       EM: "Missing parameter!",
@@ -46,7 +47,32 @@ const createNewProduct = async (req, res) => {
   }
 };
 
+const getAllOrders = async (req, res) => {
+  if (!req.body.username) {
+    return res.status(200).json({
+      EM: "Missing parameter", // error message
+      EC: "1", // error code
+    });
+  }
+
+  try {
+    let data = await SellerService.getAllOrdersService(req.body.username);
+    return res.status(200).json({
+      EM: data.EM,
+      EC: data.EC,
+      DT: data.DT,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      EM: "error from server", // error message
+      EC: "-1", // error code
+    });
+  }
+};
+
 module.exports = {
   addNewCategoryChild,
   createNewProduct,
+  getAllOrders,
 };
