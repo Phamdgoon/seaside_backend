@@ -54,7 +54,7 @@ const getProductsService = async () => {
         product_image.url_image,
         product_detail.id AS id_product_detail,
         product_detail.price,
-        product.name_shop,
+        shop_profile.name_shop,
         shop_profile.avt,
         shop_profile.address,
         product_size.size,
@@ -65,7 +65,7 @@ const getProductsService = async () => {
     inner join product_image on product_detail.id = product_image.id_product_detail
     inner join category_child on product.id_category_child = category_child.id
     inner join categories on category_child.id_category = categories.id
-    inner join shop_profile ON shop_profile.name_shop = product.name_shop
+    inner join shop_profile ON shop_profile.id = product.id_shop
     inner join product_size ON product_size.id_product_detail = product_detail.id;
       
             `);
