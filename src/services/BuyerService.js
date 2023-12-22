@@ -1,5 +1,5 @@
 import connection from "../config/connectDB";
-
+import mysql from "mysql2/promise";
 const getCategoriesService = async () => {
     try {
         const [dataCategories] = await connection.execute(
@@ -52,11 +52,13 @@ const getProductsService = async () => {
         categories.id as category_id,
         categories.name_category,
         product_image.url_image,
+        product_detail.id AS id_product_detail,
         product_detail.price,
         product.name_shop,
         shop_profile.avt,
         shop_profile.address,
         product_size.size,
+        product_size.product_number,
         product_detail.name_product_detail
     from product
     inner join product_detail on product_detail.id_product = product.id
@@ -93,20 +95,58 @@ const handleBuyerOrderService = async (data) => {
             port: process.env.DB_PORT,
         });
 
+        await connection.beginTransaction();
+
         try {
+            // Thêm thông tin đơn hàng vào bảng `order`
+            const [orderResult] = await connection.execute(
+                "INSERT INTO `order` (username, id_shipping_address, payment_methods) VALUES (?, ?, ?)",
+                [data.username, data.id_shipping_address, data.payment_methods]
+            );
+
+            // Lấy ID của đơn hàng vừa thêm
+            const orderId = orderResult.insertId;
+
+            // Thêm chi tiết đơn hàng vào bảng `order_detail`
+            const [orderDetailResult] = await connection.execute(
+                "INSERT INTO `order_detail` (id_order, id_product_detail, quantity, size, price, status) VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    orderId,
+                    data.id_product_detail,
+                    data.quantity,
+                    data.size,
+                    data.price,
+                    data.status,
+                ]
+            );
+
+            const [newOrder] = await connection.execute(
+                "SELECT * FROM `order` AS o JOIN `order_detail` AS od ON o.id = od.id_order WHERE o.id = ?",
+                [orderId]
+            );
+
+            await connection.commit();
+
+            return {
+                EM: "Order placed successfully",
+                EC: 0,
+                DT: [],
+            };
         } catch (error) {
             await connection.rollback();
-            console.log(error);
+            console.error(error);
             return {
-                EM: "Error during registration.",
+                EM: "Error during order placement.",
                 EC: -4,
                 DT: "",
             };
+        } finally {
+            await connection.end();
         }
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return {
-            EM: "Error during registration.",
+            EM: "Error during order placement.",
             EC: -4,
             DT: "",
         };

@@ -54,7 +54,7 @@ const handleLoginService = async (data) => {
                     );
 
                     const [addressShipRows] = await connection.execute(
-                        "SELECT address, phone_number FROM shipping_address WHERE username = ?",
+                        "SELECT id,address, phone_number FROM shipping_address WHERE username = ?",
                         [user.username]
                     );
 
@@ -93,6 +93,10 @@ const handleLoginService = async (data) => {
                             addressShipRows.length > 0
                                 ? addressShipRows[0].phone_number
                                 : null;
+                        const id =
+                            addressShipRows.length > 0
+                                ? addressShipRows[0].id
+                                : null;
                         return {
                             EM: `Logged in with permissions ${firstPermissionName}`,
                             EC: 0,
@@ -104,6 +108,7 @@ const handleLoginService = async (data) => {
                                 nameShop: nameShop,
                                 address: address,
                                 phoneNumber: phone_number,
+                                idShippingAddress: id,
                             },
                         };
                     } else {
