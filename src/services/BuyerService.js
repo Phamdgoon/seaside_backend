@@ -1,49 +1,49 @@
 import connection from "../config/connectDB";
 import mysql from "mysql2/promise";
 const getCategoriesService = async () => {
-  try {
-    const [dataCategories] = await connection.execute(
-      "SELECT id, name_category, url_category FROM categories"
-    );
-
-    const categoriesWithChildren = await Promise.all(
-      dataCategories.map(async (category) => {
-        const [childRows] = await connection.execute(
-          "SELECT name_category_child FROM category_child WHERE id_category = ?",
-          [category.id]
+    try {
+        const [dataCategories] = await connection.execute(
+            "SELECT id, name_category, url_category FROM categories"
         );
 
-        const childrenNames = childRows.map(
-          (child) => child.name_category_child
+        const categoriesWithChildren = await Promise.all(
+            dataCategories.map(async (category) => {
+                const [childRows] = await connection.execute(
+                    "SELECT name_category_child FROM category_child WHERE id_category = ?",
+                    [category.id]
+                );
+
+                const childrenNames = childRows.map(
+                    (child) => child.name_category_child
+                );
+
+                return {
+                    id: category.id,
+                    name_category: category.name_category,
+                    url_category: category.url_category,
+                    name_category_sub: childrenNames,
+                };
+            })
         );
 
         return {
-          id: category.id,
-          name_category: category.name_category,
-          url_category: category.url_category,
-          name_category_sub: childrenNames,
+            EM: "Categories retrieved successfully",
+            EC: 0,
+            DT: categoriesWithChildren,
         };
-      })
-    );
-
-    return {
-      EM: "Categories retrieved successfully",
-      EC: 0,
-      DT: categoriesWithChildren,
-    };
-  } catch (e) {
-    console.error(e);
-    return {
-      EM: "There's something wrong with the service...",
-      EC: -2,
-      DT: "",
-    };
-  }
+    } catch (e) {
+        console.error(e);
+        return {
+            EM: "There's something wrong with the service...",
+            EC: -2,
+            DT: "",
+        };
+    }
 };
 
 const getProductsService = async () => {
-  try {
-    const [dataProducts] = await connection.execute(`
+    try {
+        const [dataProducts] = await connection.execute(`
         select 
         product.name_product,
         product.id as product_id,
@@ -70,91 +70,122 @@ const getProductsService = async () => {
       
             `);
 
-    return {
-      EM: "Products retrieved successfully",
-      EC: 0,
-      DT: dataProducts,
-    };
-  } catch (e) {
-    console.error(e);
-    return {
-      EM: "There's something wrong with the service...",
-      EC: -2,
-      DT: "",
-    };
-  }
+        return {
+            EM: "Products retrieved successfully",
+            EC: 0,
+            DT: dataProducts,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            EM: "There's something wrong with the service...",
+            EC: -2,
+            DT: "",
+        };
+    }
 };
 
 const handleBuyerOrderService = async (data) => {
-  try {
-    const connection = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      port: process.env.DB_PORT,
-    });
+    try {
+        const connection = await mysql.createConnection({
+            host: process.env.DB_HOST,
+            user: process.env.DB_USERNAME,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+            port: process.env.DB_PORT,
+        });
 
-    await connection.beginTransaction();
+        await connection.beginTransaction();
+
+        try {
+            // Thêm thông tin đơn hàng vào bảng `order`
+            const [orderResult] = await connection.execute(
+                "INSERT INTO `order` (username, id_shipping_address, payment_methods) VALUES (?, ?, ?)",
+                [data.username, data.id_shipping_address, data.payment_methods]
+            );
+
+            // Lấy ID của đơn hàng vừa thêm
+            const orderId = orderResult.insertId;
+
+            // Thêm chi tiết đơn hàng vào bảng `order_detail`
+            const [orderDetailResult] = await connection.execute(
+                "INSERT INTO `order_detail` (id_order, id_product_detail, quantity, size, price, status) VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    orderId,
+                    data.id_product_detail,
+                    data.quantity,
+                    data.size,
+                    data.price,
+                    data.status,
+                ]
+            );
+
+            const [newOrder] = await connection.execute(
+                "SELECT * FROM `order` AS o JOIN `order_detail` AS od ON o.id = od.id_order WHERE o.id = ?",
+                [orderId]
+            );
+
+            await connection.commit();
+
+            return {
+                EM: "Order placed successfully",
+                EC: 0,
+                DT: [],
+            };
+        } catch (error) {
+            await connection.rollback();
+            console.error(error);
+            return {
+                EM: "Error during order placement.",
+                EC: -4,
+                DT: "",
+            };
+        } finally {
+            await connection.end();
+        }
+    } catch (error) {
+        console.error(error);
+        return {
+            EM: "Error during order placement.",
+            EC: -4,
+            DT: "",
+        };
+    }
+};
+
+const getAllOrdersBuyerService = async (data) => {
+    if (!data) {
+        return {
+            EM: "Missing data parameter",
+            EC: 1,
+        };
+    }
 
     try {
-      // Thêm thông tin đơn hàng vào bảng `order`
-      const [orderResult] = await connection.execute(
-        "INSERT INTO `order` (username, id_shipping_address, payment_methods) VALUES (?, ?, ?)",
-        [data.username, data.id_shipping_address, data.payment_methods]
-      );
+        const res = await connection.execute(
+            "SELECT product.id_shop, product.name_product, product_image.url_image as image,order_detail.id as id_order_detail, order_detail.quantity, order_detail.size, order_detail.price, order_detail.status, `order`.payment_methods, shipping_address.name, shipping_address.phone_number, shipping_address.address FROM shop_profile  INNER JOIN  product ON shop_profile.id = product.id_shop INNER JOIN product_detail ON product.id = product_detail.id_product INNER JOIN product_image ON product_detail.id = product_image.id_product_detail INNER JOIN order_detail ON product_detail.id = order_detail.id_product_detail INNER JOIN `order` ON order_detail.id_order = `order`.id INNER JOIN buyer_profile ON `order`.username = buyer_profile.username INNER JOIN shipping_address ON buyer_profile.username = shipping_address.username where buyer_profile.username = ?",
+            [data]
+        );
 
-      // Lấy ID của đơn hàng vừa thêm
-      const orderId = orderResult.insertId;
-
-      // Thêm chi tiết đơn hàng vào bảng `order_detail`
-      const [orderDetailResult] = await connection.execute(
-        "INSERT INTO `order_detail` (id_order, id_product_detail, quantity, size, price, status) VALUES (?, ?, ?, ?, ?, ?)",
-        [
-          orderId,
-          data.id_product_detail,
-          data.quantity,
-          data.size,
-          data.price,
-          data.status,
-        ]
-      );
-
-      const [newOrder] = await connection.execute(
-        "SELECT * FROM `order` AS o JOIN `order_detail` AS od ON o.id = od.id_order WHERE o.id = ?",
-        [orderId]
-      );
-
-      await connection.commit();
-
-      return {
-        EM: "Order placed successfully",
-        EC: 0,
-        DT: [],
-      };
-    } catch (error) {
-      await connection.rollback();
-      console.error(error);
-      return {
-        EM: "Error during order placement.",
-        EC: -4,
-        DT: "",
-      };
-    } finally {
-      await connection.end();
+        if (res) {
+            return {
+                EM: "OK",
+                EC: 0,
+                DT: res[0],
+            };
+        }
+    } catch (e) {
+        console.error(e);
+        return {
+            EM: "There's something wrong with the service...",
+            EC: -2,
+        };
     }
-  } catch (error) {
-    console.error(error);
-    return {
-      EM: "Error during order placement.",
-      EC: -4,
-      DT: "",
-    };
-  }
 };
 
 module.exports = {
-  getCategoriesService,
-  getProductsService,
-  handleBuyerOrderService,
+    getCategoriesService,
+    getProductsService,
+    handleBuyerOrderService,
+    getAllOrdersBuyerService,
 };

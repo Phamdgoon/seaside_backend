@@ -54,8 +54,35 @@ const handleBuyerOrder = async (req, res) => {
     }
 };
 
+const getAllOrdersBuyer = async (req, res) => {
+    if (!req.body.username) {
+        return res.status(200).json({
+            EM: "Missing parameter", // error message
+            EC: "1", // error code
+        });
+    }
+
+    try {
+        let data = await BuyerService.getAllOrdersBuyerService(
+            req.body.username
+        );
+        return res.status(200).json({
+            EM: data.EM,
+            EC: data.EC,
+            DT: data.DT,
+        });
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({
+            EM: "error from server", // error message
+            EC: "-1", // error code
+        });
+    }
+};
+
 module.exports = {
     getCategories,
     getProducts,
     handleBuyerOrder,
+    getAllOrdersBuyer,
 };
