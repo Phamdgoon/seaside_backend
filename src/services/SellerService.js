@@ -123,7 +123,7 @@ const getAllOrdersService = async (data) => {
 
   try {
     const res = await connection.execute(
-      "SELECT product.id_shop, product.name_product, product_image.url_image as image, order_detail.quantity, order_detail.size, order_detail.price, order_detail.status, `order`.payment_methods, shipping_address.name, shipping_address.phone_number, shipping_address.address FROM shop_profile  INNER JOIN  product ON shop_profile.id = product.id_shop INNER JOIN product_detail ON product.id = product_detail.id_product INNER JOIN product_image ON product_detail.id = product_image.id_product_detail INNER JOIN order_detail ON product_detail.id = order_detail.id_product_detail INNER JOIN `order` ON order_detail.id_order = `order`.id INNER JOIN buyer_profile ON `order`.username = buyer_profile.username INNER JOIN shipping_address ON buyer_profile.username = shipping_address.username where shop_profile.username = ?",
+      "SELECT product.id_shop, product.name_product, product_image.url_image as image,order_detail.id as id_order_detail, order_detail.quantity, order_detail.size, order_detail.price, order_detail.status, `order`.payment_methods, shipping_address.name, shipping_address.phone_number, shipping_address.address FROM shop_profile  INNER JOIN  product ON shop_profile.id = product.id_shop INNER JOIN product_detail ON product.id = product_detail.id_product INNER JOIN product_image ON product_detail.id = product_image.id_product_detail INNER JOIN order_detail ON product_detail.id = order_detail.id_product_detail INNER JOIN `order` ON order_detail.id_order = `order`.id INNER JOIN buyer_profile ON `order`.username = buyer_profile.username INNER JOIN shipping_address ON buyer_profile.username = shipping_address.username where shop_profile.username = ?",
       [data]
     );
 
@@ -143,8 +143,38 @@ const getAllOrdersService = async (data) => {
   }
 };
 
+const confirmOrderService = async (id) => {
+  if (!id) {
+    return {
+      EM: "Missing data parameter",
+      EC: 1,
+    };
+  }
+
+  try {
+    const res = await connection.execute(
+      "UPDATE `order_detail` SET `status`='Processing' WHERE id = ?",
+      [id]
+    );
+
+    if (res) {
+      return {
+        EM: "OK",
+        EC: 0,
+      };
+    }
+  } catch (e) {
+    console.error(e);
+    return {
+      EM: "There's something wrong with the service...",
+      EC: -2,
+    };
+  }
+};
+
 module.exports = {
   handleAddNewCategoryService,
   handleCreateNewProduct,
   getAllOrdersService,
+  confirmOrderService,
 };
