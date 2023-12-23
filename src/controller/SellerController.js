@@ -71,8 +71,32 @@ const getAllOrders = async (req, res) => {
   }
 };
 
+const confirmOrder = async (req, res) => {
+  if (!req.body.id) {
+    return res.status(200).json({
+      EM: "Missing parameter", // error message
+      EC: "1", // error code
+    });
+  }
+
+  try {
+    let data = await SellerService.confirmOrderService(req.body.id);
+    return res.status(200).json({
+      EM: data.EM,
+      EC: data.EC,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      EM: "error from server", // error message
+      EC: "-1", // error code
+    });
+  }
+};
+
 module.exports = {
   addNewCategoryChild,
   createNewProduct,
   getAllOrders,
+  confirmOrder,
 };

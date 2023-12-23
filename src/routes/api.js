@@ -23,6 +23,8 @@ const initApiRoutes = (app) => {
   router.post("/create-new-product", SellerController.createNewProduct);
 
   router.post("/get-orders", SellerController.getAllOrders);
+
+  router.post("/confirm-order", SellerController.confirmOrder);
   return app.use("/", router);
 };
 
